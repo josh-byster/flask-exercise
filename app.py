@@ -51,24 +51,45 @@ def mirror(name):
     data = {"name": name}
     return create_response(data)
 
-@app.route("/users")
-def get_users():
-    team = request.args.get('team')
-    users_on_team = db.getByTeam("users",team)
-    if users_on_team is None:
-        data = {"users": []}
-    else:
-        data = {"users": users_on_team}
-    
-    
+@app.route("/users", methods = ["GET","POST","PUT"])
+def user():
+    if request.method == 'GET':
+        team = request.args.get('team')
+        if team is not None:
+            return get_users_by_team(team)
+        else:
+            # If no team specified as a query param, return all the users
+            return get_all_users()
+    if request.method == 'POST':
+        # Create a new user to update the DB
+        return add_user(request.args.to_dict())
 
+def get_all_users():
+    users = db.get("users")
+    data = {"users": users}
     return create_response(data)
+
+def get_users_by_team(team):
+    users_on_team = db.getByTeam("users",team)
+    data = {"users": users_on_team}
+    return create_response(data)
+
+def add_user(user_data):
+    if "name" in user_data and "age" in user_data and "team" in user_data:
+        # Create the user since all the necessary fields exist
+        new_user = db.create("users",user_data)
+        return create_response({"user":new_user},status=201)
+    # Return an error otherwise    
+    message = "Cannot create new user with missing parameters. Got name={0},age={1},team={2}".format(user_data.get("name"),user_data.get("age"),user_data.get("team"))
+    return create_response(message=message,status=422)
+    
+    
 
 @app.route("/users/<user_id>")
 def get_user_by_id(user_id):
     data_for_user = db.getById("users",int(user_id))
     if data_for_user is not None:
-        data = {"users": data_for_user}  
+        data = {"user": data_for_user}  
         return create_response(data)   
     else:
         data = {"message": "A user with id {0} was not found in the database.".format(user_id)}

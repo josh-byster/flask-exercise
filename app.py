@@ -51,7 +51,7 @@ def mirror(name):
     data = {"name": name}
     return create_response(data)
 
-@app.route("/users", methods = ["GET","POST","PUT"])
+@app.route("/users", methods = ["GET","POST"])
 def user():
     if request.method == 'GET':
         team = request.args.get('team')
@@ -83,17 +83,25 @@ def add_user(user_data):
     message = "Cannot create new user with missing parameters. Got name={0},age={1},team={2}".format(user_data.get("name"),user_data.get("age"),user_data.get("team"))
     return create_response(message=message,status=422)
     
-    
-
-@app.route("/users/<user_id>")
-def get_user_by_id(user_id):
-    data_for_user = db.getById("users",int(user_id))
-    if data_for_user is not None:
-        data = {"user": data_for_user}  
-        return create_response(data)   
+def update_user(user_id,update_values):
+    if db.getById("users",int(user_id)) is not None:
+        user_update = db.updateById("users",int(user_id),update_values)
+        return create_response(user_update)
     else:
-        data = {"message": "A user with id {0} was not found in the database.".format(user_id)}
-        return create_response(data, status = 404)
+        message = "Cannot update user. id {0} is invalid.".format(user_id)
+        return create_response(message=message,status=404)
+
+@app.route("/users/<user_id>", methods = ["GET","PUT"])
+def user_by_id(user_id):
+    if request.method == "GET":
+        data_for_user = db.getById("users",int(user_id))
+        if data_for_user is not None:
+            data = {"user": data_for_user}  
+            return create_response(data)   
+        else:
+            data = {"message": "A user with id {0} was not found in the database.".format(user_id)}
+            return create_response(data, status = 404)
+    return update_user(user_id,request.args.to_dict())
 
 
 """

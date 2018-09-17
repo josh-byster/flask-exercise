@@ -91,7 +91,16 @@ def update_user(user_id,update_values):
         message = "Cannot update user. id {0} is invalid.".format(user_id)
         return create_response(message=message,status=404)
 
-@app.route("/users/<user_id>", methods = ["GET","PUT"])
+def deleteUser(user_id):
+    if db.getById("users",int(user_id)) is not None:
+        db.deleteById("users",int(user_id))
+        message = "Successfully deleted user with id={0}".format(user_id)
+        return create_response(message=message)
+    else:
+        message = "Could not delete user with id={0}. The user was not found in the database.".format(user_id)
+        return create_response(message=message,status=404)
+    
+@app.route("/users/<user_id>", methods = ["GET","PUT","DELETE"])
 def user_by_id(user_id):
     if request.method == "GET":
         data_for_user = db.getById("users",int(user_id))
@@ -101,7 +110,10 @@ def user_by_id(user_id):
         else:
             data = {"message": "A user with id {0} was not found in the database.".format(user_id)}
             return create_response(data, status = 404)
-    return update_user(user_id,request.args.to_dict())
+    if request.method == "PUT":
+        return update_user(user_id,request.args.to_dict())
+    if request.method == "DELETE":
+        return deleteUser(user_id)
 
 
 """
